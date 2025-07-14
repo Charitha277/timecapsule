@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TimeCapsule ⏳</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    textarea, input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #aaa;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    .capsule {
+      border: 1px dashed #666;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .locked {
+      background-color: #eee;
+    }
+    .theme-dark {
+      background: #1f1f1f;
+      color: #f0f0f0;
+    }
+    .theme-dark input,
+    .theme-dark textarea {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #777;
+    }
+    .theme-toggle {
+      text-align: right;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🕰️ TimeCapsule</h1>
+
+    <div class="theme-toggle">
+      <label>🌗 Theme</label>
+      <input type="checkbox" id="themeSwitch">
+    </div>
+
+    <textarea id="message" placeholder="Write your future message..."></textarea>
+    <input type="date" id="unlockDate">
+    <input type="password" id="password" placeholder="🔒 Password">
+    <button onclick="saveCapsule()">📩 Save Capsule</button>
+
+    <h2>Your Capsules</h2>
+    <div id="capsuleList"></div>
+  </div>
+
+  <script>
+    const themeSwitch = document.getElementById('themeSwitch');
+    const body = document.body;
+
+    if (localStorage.getItem("theme") === "dark") {
+      body.classList.add("theme-dark");
+      themeSwitch.checked = true;
+    }
+
+    themeSwitch.addEventListener('change', () => {
+      body.classList.toggle("theme-dark");
+      localStorage.setItem("theme", body.classList.contains("theme-dark") ? "dark" : "light");
+    });
+
+    function saveCapsule() {
+      const message = document.getElementById('message').value;
+      const date = document.getElementById('unlockDate').value;
+      const pass = document.getElementById('password').value;
+
+      if (!message || !date || !pass) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      const capsule = {
+        id: Date.now(),
+        message,
+        date,
+        pass
+      };
+
+      const capsules = JSON.parse(localStorage.getItem("capsules") || "[]");
+      capsules.push(capsule);
+      localStorage.setItem("capsules", JSON.stringify(capsules));
+
+      document.getElementById('message').value = "";
+      document.getElementById('unlockDate').value = "";
+      document.getElementById('password').value = "";
+
+      showCapsules();
+    }
+
+    function showCapsules() {
+      const list = document.getElementById("capsuleList");
+      list.innerHTML = "";
+
+      const capsules = JSON.parse(localStorage.getItem("capsules") || "[]");
+
+      capsules.forEach(capsule => {
+        const div = document.createElement("div");
+        div.className = "capsule";
+
+        const unlockTime = new Date(capsule.date);
+        const now = new Date();
+
+        if (now < unlockTime) {
+          div.classList.add("locked");
+          const countdown = getCountdown(unlockTime);
+          div.innerHTML = `
+            <p>🔒 Locked Capsule</p>
+            <p>Unlocks in: ${countdown}</p>
+            <input type="password" placeholder="Enter password to preview">
+            <button onclick="attemptUnlock(${capsule.id}, this)">🔓 Try Unlock</button>
+          `;
+        } else {
+          div.innerHTML = `
+            <p>🔓 Unlocked Capsule</p>
+            <p>📨 ${capsule.message}</p>
+          `;
+        }
+
+        list.appendChild(div);
+      });
+    }
+
+    function getCountdown(date) {
+      const now = new Date();
+      const diff = Math.max(0, date - now);
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hrs = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+
+      return `${days}d ${hrs}h ${mins}m`;
+    }
+
+    function attemptUnlock(id, btn) {
+      const input = btn.previousElementSibling;
+      const entered = input.value;
+
+      const capsules = JSON.parse(localStorage.getItem("capsules") || "[]");
+      const capsule = capsules.find(c => c.id === id);
+
+      if (entered === capsule.pass) {
+        alert("Correct password! But capsule still locked by time ⏳");
+      } else {
+        alert("Wrong password ❌");
+      }
+    }
+
+    showCapsules();
+  </script>
+</body>
+</html>
